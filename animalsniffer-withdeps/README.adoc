@@ -1,0 +1,68 @@
+= Comment gérer les dépendances compilées en version inférieure ?
+
+Est-il possible de gérer le code des bibliothèques externes compilées dans des versions inférieures à la configuration du projet? +
+J'ai vu qu'il était possible d'utiliser <ignore> mais dans l'exemple ci-dessous on devrait pouvoir utiliser des API avec une version inférieures à la cible?
+
+== Code
+
+[source, java]
+----
+...
+  System.out.println(StringUtils.appendIfMissing("abc", "xyz", "mno"));
+...
+----
+
+== commons-lang 3.3
+
+* Version compilée en 1.6
+** https://github.com/apache/commons-lang/blob/LANG_3_3/pom.xml#L497
+* org.apache.commons.lang3.StringUtils.appendIfMissing(String, CharSequence, CharSequence[])
+** https://github.com/apache/commons-lang/blob/LANG_3_3/src/main/java/org/apache/commons/lang3/StringUtils.java#L7561
+
+
+[source, xml]
+----
+...
+<dependency>
+  <groupId>org.apache.commons</groupId>
+  <artifactId>commons-lang3</artifactId>
+  <version>3.3</version>
+</dependency>
+...
+----
+
+== enforcer-animal
+
+=== Maven configuration
+
+[source, xml]
+----
+<maven.compiler.source>1.7</maven.compiler.source>
+<maven.compiler.target>1.7</maven.compiler.target>
+...
+<checkSignatureRule implementation="org.codehaus.mojo.animal_sniffer.enforcer.CheckSignatureRule">
+  <signature>
+    <groupId>org.codehaus.mojo.signature</groupId>
+    <artifactId>java17</artifactId>
+    <version>1.0</version>
+  </signature>
+</checkSignatureRule>
+...
+----
+
+== Output
+
+[source, bash]
+----
+$ mvn clean package -f pom-enforcer-animal.xml
+...
+[INFO] --- maven-enforcer-plugin:1.4:enforce (check-java-compat) @ animalsniffer ---
+[INFO] Checking unresolved references to org.codehaus.mojo.signature:java17:1.0
+[ERROR] /Users/mgreau/Dev/Sources/personal-branding/maven/demos/animalsniffer-withdeps/src/main/java/animalsniffer/Main.java:24: Undefined reference: String org.apache.commons.lang3.StringUtils.appendIfMissing(String, CharSequence, CharSequence[])
+[ERROR] /Users/mgreau/Dev/Sources/personal-branding/maven/demos/animalsniffer-withdeps/src/main/java/animalsniffer/Main.java:25: Undefined reference: String org.apache.commons.lang3.StringUtils.appendIfMissing(String, CharSequence, CharSequence[])
+[ERROR] /Users/mgreau/Dev/Sources/personal-branding/maven/demos/animalsniffer-withdeps/src/main/java/animalsniffer/Main.java:26: Undefined reference: String org.apache.commons.lang3.StringUtils.appendIfMissing(String, CharSequence, CharSequence[])
+[ERROR] /Users/mgreau/Dev/Sources/personal-branding/maven/demos/animalsniffer-withdeps/src/main/java/animalsniffer/Main.java:27: Undefined reference: String org.apache.commons.lang3.StringUtils.appendIfMissing(String, CharSequence, CharSequence[])
+[WARNING] Rule 0: org.codehaus.mojo.animal_sniffer.enforcer.CheckSignatureRule failed with message:
+Signature errors found. Verify them and ignore them with the proper annotation if needed.
+...
+----
